@@ -61,6 +61,7 @@ struct Node {
 	Node *copyRecursive();
 	void deleteRecursive();
 	void printRecursive(std::vector<Tok> &out, int pprio);
+	void printLispy(std::vector<Tok> &out);
 	float evalRecursive();
 	bool isConstRecursive();
 	bool foldConstRecursive();
@@ -87,6 +88,7 @@ struct AST {
 	bool FromDiff(AST &src, char const *id);
 	bool FromExpr(std::vector<Tok> &expr);
 	void Print(std::vector<Tok> &out);
+	void PrintLispy(std::vector<Tok> &out);
 	void FoldConst();
 };
 

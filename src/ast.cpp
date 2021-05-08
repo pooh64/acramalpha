@@ -3,9 +3,10 @@
 #include <unordered_map>
 #include <cstring>
 #include <cmath>
+#include <cassert>
 
 #include <ast.h>
-#include <log.h>
+#include <logger.h>
 
 static std::unordered_map<char const *, Symbol> symtab;
 
@@ -75,13 +76,9 @@ Node *newSYMNode(char const *id)
 Node *buildSymNode(char const *id)
 {
 	id = StrTabLookup(id);
-	if (!id) {
-		abort();
-	}
+	assert(id);
 	Symbol *sym = SymTabLookup(id);
-	if (!sym) {
-		abort();
-	}
+	assert(sym);
 	Node *n = new Node;
 	n->kind = Node::Kind::SYM;
 	n->sym = sym;
@@ -145,7 +142,7 @@ void Node::deleteRecursive()
 		arg->deleteRecursive();
 		break;
 	default:
-		abort();
+		assert(0);
 	}
 	delete this;
 }
@@ -285,7 +282,7 @@ int printGetPrio(Node &n)
 			return 2;
 		if (n.bop == Tok::Kind::ADD || n.bop == Tok::Kind::SUB)
 			return 1;
-		abort();
+		assert(0);
 	}
 	return 4;
 }
@@ -318,15 +315,56 @@ void Node::printRecursive(std::vector<Tok> &out, int pprio)
 		out.push_back(Tok{ .kind = Tok::Kind::RBR_C });
 		break;
 	default:
-		abort();
+		assert(0);
 	}
 	if (cprio < pprio)
 		out.push_back(Tok{ .kind = Tok::Kind::RBR_C });
 }
 
+void Node::printLispy(std::vector<Tok> &out)
+{
+	switch (kind) {
+	case Kind::NUM:
+		out.push_back(Tok{ .kind = Tok::Kind::NUM, .num = num });
+		return;
+	case Kind::SYM:
+		out.push_back(Tok{ .kind = Tok::Kind::ID, .id = sym->str });
+		return;
+	default:
+		break;
+	}
+
+	out.push_back(Tok{ .kind = Tok::Kind::RBR_O });
+	switch (kind) {
+	case Kind::UNARY:
+		out.push_back(Tok{ .kind = uop });
+		next->printLispy(out);
+		break;
+	case Kind::BINARY:
+		out.push_back(Tok{ .kind = bop });
+		l->printLispy(out);
+		r->printLispy(out);
+		break;
+	case Kind::FCALL:
+		fn->printLispy(out);
+		arg->printLispy(out);
+		break;
+	default:
+		assert(0);
+	}
+	out.push_back(Tok{ .kind = Tok::Kind::RBR_C });
+}
+
 void AST::Print(std::vector<Tok> &out)
 {
 	root->printRecursive(out, 0);
+	out.push_back({ .kind = Tok::Kind::END });
+}
+
+void AST::PrintLispy(std::vector<Tok> &out)
+{
+	root->printLispy(out);
+	out.push_back({ .kind = Tok::Kind::END });
 }
 
 float Node::evalRecursive()
@@ -342,18 +380,18 @@ float Node::evalRecursive()
 		switch (uop) {
 			DEF_UNARY
 		default:
-			abort();
+			assert(0);
 		}
 	case Kind::BINARY:
 		switch (uop) {
 			DEF_BINARY
 		default:
-			abort();
+			assert(0);
 		}
 	case Kind::FCALL:
 		return fn->sym->evalfp(arg->evalRecursive());
 	default:
-		abort();
+		assert(0);
 	}
 #undef e
 #undef DEF
@@ -373,7 +411,7 @@ bool Node::isConstRecursive()
 	case Kind::FCALL:
 		return arg->isConstRecursive();
 	default:
-		abort();
+		assert(0);
 	}
 }
 
@@ -388,10 +426,11 @@ void AST::FoldConst()
 bool Node::foldConstRecursive()
 {
 	bool cl, cr, cn;
+	float tmp;
 #define e(n) ((n)->num)
 #define DEF(tok, eval, diff)                                                   \
 	case tok:                                                              \
-		num = eval;                                                    \
+		tmp = eval;                                                    \
 		break;
 
 	switch (kind) {
@@ -406,7 +445,7 @@ bool Node::foldConstRecursive()
 		switch (uop) {
 			DEF_UNARY
 		default:
-			abort();
+			assert(0);
 		}
 		delete next;
 		break;
@@ -418,7 +457,7 @@ bool Node::foldConstRecursive()
 		switch (bop) {
 			DEF_BINARY
 		default:
-			abort();
+			assert(0);
 		}
 		delete l;
 		delete r;
@@ -426,14 +465,15 @@ bool Node::foldConstRecursive()
 	case Kind::FCALL:
 		if (!arg->foldConstRecursive())
 			return false;
-		num = fn->sym->evalfp(arg->num);
+		tmp = fn->sym->evalfp(arg->num);
 		delete fn;
 		delete arg;
 		break;
 	default:
-		abort();
+		assert(0);
 	}
 	kind = Node::Kind::NUM;
+	num = tmp;
 	return true;
 #undef DEF
 }
@@ -460,7 +500,7 @@ Node *Node::copyRecursive()
 		c->arg = arg->copyRecursive();
 		break;
 	default:
-		abort();
+		assert(0);
 	}
 	return c;
 }
@@ -488,18 +528,18 @@ Node *Node::diffRecursive(char const *id)
 		switch (uop) {
 			DEF_UNARY
 		default:
-			abort();
+			assert(0);
 		}
 	case Node::Kind::BINARY:
 		switch (bop) {
 			DEF_BINARY
 		default:
-			abort();
+			assert(0);
 		}
 	case Node::Kind::FCALL:
 		return fn->sym->difffp(arg, id);
 	default:
-		abort();
+		assert(0);
 	}
 #undef nun
 #undef nbn
@@ -512,10 +552,9 @@ Node *Node::diffRecursive(char const *id)
 
 bool AST::FromDiff(AST &src, char const *id)
 {
-	id = StrTabLookup(id);
-	if (!id)
-		return false;
-	Symbol *sym = SymTabLookup(id);
+	auto strid = std::string(id);
+	id = StrTabInstall(strid);
+	auto [sym, ok] = SymTabInstall(id);
 	if (sym == nullptr || sym->kind != Symbol::Kind::VAR)
 		return false;
 	if (root)

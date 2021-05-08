@@ -8,7 +8,7 @@
 	DEF(DIV, '/')                                                          \
 	DEF(RBR_O, '(')                                                        \
 	DEF(RBR_C, ')')
-
+	
 char const *StrTabInstall(std::string &str);
 char const *StrTabLookup(char const *id);
 

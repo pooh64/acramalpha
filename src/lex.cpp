@@ -5,10 +5,12 @@
 #include <cctype>
 #include <ostream>
 #include <cstring>
-#include <lex.h>
+#include <assert.h>
 
 #include <unordered_map>
 #include <string>
+
+#include <lex.h>
 
 static std::unordered_map<std::string, char const*> strtab;
 
@@ -117,7 +119,7 @@ std::ostream &operator<<(std::ostream &os, const Tok &tok)
 		DEF_TOK_PUNCT
 #undef DEF
 	default:
-		abort();
+		assert(0);
 	}
 	return os;
 }

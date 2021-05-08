@@ -7,12 +7,12 @@ DEP += $(OBJ:.o=.d)
 
 CXX = g++
 CXXFLAGS = -g --std=gnu++17 -MMD -Wall -Wunused -Wpointer-arith -I./src
-CXXFLAGS += -O2
+CXXFLAGS += -O0
 LDFLAGS =
 dir_guard=@mkdir -p $(@D)
 
-#CXXFLAGS += -fsanitize=address -fsanitize=undefined
-#LDFLAGS += -lasan
+CXXFLAGS += -fsanitize=address -fsanitize=undefined
+LDFLAGS += -lasan
 
 .PHONY: all
 all: $(BINDIR)/acramalpha
